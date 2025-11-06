@@ -4,16 +4,8 @@ import json
 import os
 import re
 
-import torch
+import requests
 from tqdm import tqdm
-from transformers import AutoModelForCausalLM, AutoTokenizer
-
-model_names = [
-    "Llama-2-7b-hf",
-    "Llama-2-13b-hf",
-    "Mistral-7B-v0.1",
-    "Llama-3.1-8B",
-]
 
 ERA_TRANSLATION = {
     "明治": "Meiji", "大正": "Taisho", "昭和": "Showa", "平成": "Heisei", "令和": "Reiwa",
@@ -40,38 +32,50 @@ def is_valid_wareki_format(text):
 def is_valid_seireki_format(text):
     return bool(re.search(r"\b\d{4}\b", text))
 
-def load_model_and_tokenizer(model_name):
-    model_path = f"/work00/share/hf_models/{model_name}"
-    tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
-    tokenizer.padding_side = "left"
-    if tokenizer.pad_token is None:
-        tokenizer.pad_token = tokenizer.eos_token
-    model = AutoModelForCausalLM.from_pretrained(
-        model_path,
-        torch_dtype="auto",
-        device_map="auto",
-        trust_remote_code=True
-    )
-    return model, tokenizer
+def call_deepseek(prompt, api_key, api_url, model, max_tokens=32):
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": "You are an expert in the Japanese and Gregorian calendars. Please generate only the answer that continues from the text below."},
+            {"role": "user", "content": prompt}
+        ],
+        "temperature": 0.0,
+        "max_tokens": max_tokens,
+    }
+    response = requests.post(api_url, headers=headers, json=payload)
+    response.raise_for_status()
+    return response.json()["choices"][0]["message"]["content"].strip()
 
-def generate_batch(prompts, model, tokenizer, batch_size, max_new_tokens=32):
+def generate_batch(prompts, api_key, api_url, model, max_new_tokens=32):
     results = []
-    for i in range(0, len(prompts), batch_size):
-        batch = prompts[i:i+batch_size]
-        inputs = tokenizer(batch, return_tensors="pt", padding=True, truncation=True).to(model.device)
-        generate_inputs = {k: v for k, v in inputs.items() if k != "token_type_ids"}
-        with torch.no_grad():
-            outputs = model.generate(
-                **generate_inputs,
-                max_new_tokens=max_new_tokens,
-                pad_token_id=tokenizer.pad_token_id
-            )
-        for input_ids, output_ids in zip(inputs['input_ids'], outputs):
-            decoded = tokenizer.decode(output_ids[len(input_ids):], skip_special_tokens=True)
-            results.append(decoded.split("\n")[0].strip())
+    for prompt in tqdm(prompts):
+        try:
+            res = call_deepseek(prompt, api_key, api_url, model, max_new_tokens)
+            results.append(res.split("\n")[0])
+        except Exception as e:
+            print(f"エラー: {e}")
+            results.append("")
     return results
 
-def run_for_model(model_name, input_dir, output_dir, batch_size):
+def run(args):
+    api_key = args.api_key
+    api_url = "https://api.deepseek.com/v1/chat/completions"
+    model = "deepseek-chat"
+    input_dir = args.input_dir
+    output_dir = args.output_dir
+    output_dir = output_dir + f"/en-prompt/{model}"
+    os.makedirs(output_dir, exist_ok=True)
+
+    summary = {
+        "wareki": {"correct": 0, "total": 0, "format_match": 0},
+        "seireki": {"correct": 0, "total": 0, "format_match": 0},
+        "per_era": {}
+    }
+
     def is_correct_wareki(response, answer, alt_answer=None):
         answer_strs = []
         for era in [
@@ -94,57 +98,32 @@ def run_for_model(model_name, input_dir, output_dir, batch_size):
             patterns.append(fr"\b{re.escape(str(alt_answer))}\b")
         return any(re.search(p, response) for p in patterns)
 
-    print(f"\n=== Running model: {model_name} ===")
-    model, tokenizer = load_model_and_tokenizer(model_name)
-    output_dir = f"{output_dir}/en-prompt/{model_name}"
-    os.makedirs(output_dir, exist_ok=True)
-
-    summary = {
-        "wareki": {"correct": 0, "total": 0, "format_match": 0},
-        "seireki": {"correct": 0, "total": 0, "format_match": 0},
-        "per_era": {}
-    }
-
-    for path in sorted(glob.glob(f"{input_dir}/*.jsonl")):
-        era_file = os.path.splitext(os.path.basename(path))[0]
-        if era_file not in {"meiji", "taisho", "showa", "heisei"}:
+    for path in sorted(glob.glob(f"{input_dir}/en/*.jsonl")):
+        era = os.path.splitext(os.path.basename(path))[0]
+        if era not in {"meiji", "taisho", "showa", "heisei"}:
             continue
 
         with open(path) as f:
             lines = [json.loads(line) for line in f]
 
-        print(f" {era_file}: {len(lines)}件読み込み")
-        summary["per_era"][era_file] = {
+        print(f" {era}: {len(lines)} data")
+        summary["per_era"][era] = {
             "wareki": {"correct": 0, "total": 0, "format_match": 0},
             "seireki": {"correct": 0, "total": 0, "format_match": 0},
         }
 
         prompts_wareki, prompts_seireki, meta_entries = [], [], []
         for entry in lines:
-            lang = entry.get("Lang", "en")
-            if lang != "en":
-                continue  # 英語以外はスキップ
+            jp_period = entry["Era"]
+            seireki = entry["Gregorian"]
+            wareki_str = entry["Japanese"]
 
-            era_eng = entry["Era"]              # 例: "Heisei"
-            seireki = entry["Gregorian"]        # 例: 1989
-            wareki_str = entry["Japanese"]      # 例: "Heisei 1"
+            wareki_match = re.search(r"\d+", wareki_str)
+            wareki = int(wareki_match.group()) if wareki_match else 1
 
-            m = re.match(r"([A-Za-z]+)\s(Gannen|\d+)", wareki_str)
-            if not m:
-                continue
-            era_eng_parsed = m.group(1)
-            wareki = 1 if m.group(2).lower() == "gannen" else int(m.group(2))
+            eng_period = jp_period
+            roman_period = jp_period
 
-            # 和暦→日本語元号に逆引き
-            jp_period = None
-            for jp, en in ERA_TRANSLATION.items():
-                if en == era_eng_parsed:
-                    jp_period = jp
-                    break
-            if jp_period is None:
-                continue
-
-            roman_period = ERA_LATIN_MACRON[jp_period]
             alt_period, alt_wareki = BOUNDARY_MAP.get((jp_period, wareki), (None, None))
             alt_seireki = seireki if alt_period else None
 
@@ -153,6 +132,7 @@ def run_for_model(model_name, input_dir, output_dir, batch_size):
 
             prompts_wareki.append(prompt_wareki)
             prompts_seireki.append(prompt_seireki)
+
             meta_entries.append({
                 **entry,
                 "seireki_value": seireki,
@@ -162,14 +142,14 @@ def run_for_model(model_name, input_dir, output_dir, batch_size):
                 "prompt_seireki": prompt_seireki,
                 "alt_wareki": alt_wareki,
                 "alt_seireki": alt_seireki,
-                "eng_period": era_eng,
+                "eng_period": eng_period,
                 "roman_period": roman_period
             })
 
-        responses_wareki = generate_batch(prompts_wareki, model, tokenizer, batch_size)
-        responses_seireki = generate_batch(prompts_seireki, model, tokenizer, batch_size)
+        responses_wareki = generate_batch(prompts_wareki, api_key, api_url, model)
+        responses_seireki = generate_batch(prompts_seireki, api_key, api_url, model)
 
-        output_path = os.path.join(output_dir, f"{era_file}.jsonl")
+        output_path = os.path.join(output_dir, f"{era}.jsonl")
         with open(output_path, "w") as fout:
             for i, meta in enumerate(meta_entries):
                 seireki = meta["seireki_value"]
@@ -191,13 +171,13 @@ def run_for_model(model_name, input_dir, output_dir, batch_size):
                     ("seireki", is_format_seireki, is_correct_seireki_flag)
                 ]:
                     summary[mode]["total"] += 1
-                    summary["per_era"][era_file][mode]["total"] += 1
+                    summary["per_era"][era][mode]["total"] += 1
                     if is_format:
                         summary[mode]["format_match"] += 1
-                        summary["per_era"][era_file][mode]["format_match"] += 1
+                        summary["per_era"][era][mode]["format_match"] += 1
                         if is_correct_flag:
                             summary[mode]["correct"] += 1
-                            summary["per_era"][era_file][mode]["correct"] += 1
+                            summary["per_era"][era][mode]["correct"] += 1
 
                 fout.write(json.dumps({
                     **meta,
@@ -223,11 +203,4 @@ def run_for_model(model_name, input_dir, output_dir, batch_size):
     with open(os.path.join(output_dir, "summary.json"), "w") as f:
         json.dump(summary, f, ensure_ascii=False, indent=2)
 
-    del model
-    del tokenizer
     gc.collect()
-    torch.cuda.empty_cache()
-
-def run(args):
-    for model_name in model_names:
-        run_for_model(model_name, args.input_dir, args.output_dir, args.batch_size)
