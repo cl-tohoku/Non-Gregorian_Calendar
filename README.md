@@ -1,4 +1,4 @@
-# Can Language Models Handle a Non-Gregorian Calendar? The Case of the Japanese 
+# Can Language Models Handle a Non-Gregorian Calendar? The Case of the Japanese wareki
 This repository contains code and data for the paper: 
 
 *Can Language Models Handle a Non-Gregorian Calendar? The Case of the Japanese wareki* 
