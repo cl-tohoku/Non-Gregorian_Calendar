@@ -23,17 +23,17 @@ uv pip install -r requirements.txt
 We evaluated five Japanese-cenric LMs four English-centric LMs, and two state-of-the-art models.
 
 - Japanese-centric LMs
-    - LLM-JP-3-13B
-    - Sarashina2-13B
+    - llm-jp-3-13b
+    - sarashina2-13b
     - Swallow-13b
-    - Swallow-MS-7B
-    - LLaMA3-Swallow-8B
+    - Swallow-MS-7b
+    - Llama-3-Swallow-8B
 
 - English-centric LMs
-    - LLaMA2-7B
-    - LLaMA2-13B
+    - Llama-2-7b
+    - Llama-2-13b
     - Mistral-7B
-    - LLaMA-3.1-8B
+    - Llama-3.1-8B
 
 ## Dataset
 We constructed datasets for three tasks (Calendar Conversion, Japanese Calendar Arithmetic, and Birth Year Recall) covering Japanese five most recent eras: Meiji, Taisho, Showa, Heisei, and Reiwa.
