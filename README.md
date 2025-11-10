@@ -8,7 +8,7 @@ We designed three tasks requiring both temporal knowledge and reasoning: **Calen
 We find that while some models succeed in basic calendar conversions, even Japanese-centric LMs and advanced models such as GPT-4o and DeepSeek V3 struggle with Japanese-calendar arithmetic and birth year recall. 
 The findings reveal a strong bias toward the Gregorian calendar and highlight the need for culturally aware temporal reasoning in language models.
 
-**🎉This paper has been accepted of AACL-IJCNLP 2025🎉**
+**🎉This paper has been accepted to AACL-IJCNLP 2025🎉**
 
 ## Requirements
 If you use `uv`, you can set up the environment as follows. Please run the experiments inside `Non-Gregorian_Calendar` directory:

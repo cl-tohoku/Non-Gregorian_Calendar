@@ -7,15 +7,15 @@ import pandas as pd
 import seaborn as sns
 
 MODEL_NAME_MAP = {
-    "llm-jp-3-13b":        "LLM-JP-3-13B",
-    "sarashina2-13b":      "Sarashina2-13B",
-    "Swallow-13b-hf":      "Swallow-13B",
-    "Swallow-MS-7b-v0.1":  "Swallow-MS-7B",
-    "Llama-3-Swallow-8B-v0.1": "LLaMA3-Swallow-8B",
-    "Llama-2-7b-hf":       "LLaMA2-7B",
-    "Llama-2-13b-hf":      "LLaMA2-13B",
+    "llm-jp-3-13b":        "llm-jp-3-13b",
+    "sarashina2-13b":      "sarashina2-13b",
+    "Swallow-13b-hf":      "Swallow-13b",
+    "Swallow-MS-7b-v0.1":  "Swallow-MS-7b",
+    "Llama-3-Swallow-8B-v0.1": "Llama-3-Swallow-8B",
+    "Llama-2-7b-hf":       "Llama-2-7b",
+    "Llama-2-13b-hf":      "Llama-2-13b",
     "Mistral-7B-v0.1":     "Mistral-7B",
-    "Llama-3.1-8B":        "LLaMA3.1-8B",
+    "Llama-3.1-8B":        "Llama-3.1-8B",
     "gpt-4o":              "GPT-4o",
     "deepseek-chat":       "DeepSeek-V3",
 }
@@ -116,7 +116,7 @@ def draw_heatmap(data_dict, metric_display, task_type, prompt_lan, output_dir):
     ax.set_title(f"{title_prefix}: {metric_display}", pad=12, fontsize=20)
     ax.set_xlabel("Era", labelpad=10, fontsize=20)
     ax.set_ylabel("Model", labelpad=10, fontsize=20)
-    plt.xticks(rotation=30, ha="center", fontsize=18)
+    plt.xticks(rotation=30, ha="right", rotation_mode="anchor", fontsize=18)
     plt.yticks(rotation=0, fontsize=18)
 
     for tick_label in ax.get_yticklabels():

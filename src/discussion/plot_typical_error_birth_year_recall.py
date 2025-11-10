@@ -7,11 +7,11 @@ import pandas as pd
 import seaborn as sns
 
 DEFAULT_MODEL_NAME_MAP = {
-    "llm-jp-3-13b": "LLM-JP-3-13B",
-    "sarashina2-13b": "Sarashina2-13B",
-    "Swallow-13b-hf": "Swallow-13B",
-    "Swallow-MS-7b-v0.1": "Swallow-MS-7B",
-    "Llama-3-Swallow-8B-v0.1": "LLaMA3-Swallow-8B",
+    "llm-jp-3-13b": "llm-jp-3-13b",
+    "sarashina2-13b": "sarashina2-13b",
+    "Swallow-13b-hf": "Swallow-13b",
+    "Swallow-MS-7b-v0.1": "Swallow-MS-7b",
+    "Llama-3-Swallow-8B-v0.1": "Llama-3-Swallow-8B",
 }
 
 ERAS = ["meiji", "taisho", "showa", "heisei"]
@@ -63,7 +63,7 @@ def plot_heatmap(data_dict, output_dir, font_size=18):
     df = pd.DataFrame(data_dict).T[ERAS]  # ← .T を戻す！
     df.columns = ERA_LABELS  # 先頭大文字化
 
-    plt.figure(figsize=(40, 20))
+    plt.figure(figsize=(40, 5))
     ax = sns.heatmap(
         df,
         annot=True,
@@ -106,7 +106,7 @@ def main():
                         help="Prompt setting name (default: japrompt)")
     parser.add_argument("--name", type=str, default="ja-ja-name",
                         help="Subdirectory name for summaries (default: ja-ja-name)")
-    parser.add_argument("--font_size", type=int, default=60,
+    parser.add_argument("--font_size", type=int, default=40,
                         help="Font size for labels and annotations")
     args = parser.parse_args()
 

@@ -49,7 +49,7 @@ def plot_heatmap(error_rates, eras, output_dir, font_size,
     if cbar_label_font_size is None:
         cbar_label_font_size = font_size
 
-    plt.figure(figsize=(30, 5))
+    plt.figure(figsize=(40, 5))
     ax = sns.heatmap(
         df,
         annot=True,
@@ -67,7 +67,13 @@ def plot_heatmap(error_rates, eras, output_dir, font_size,
     plt.ylabel("Model", fontsize=font_size)
     plt.xlabel("Era Transition", fontsize=font_size)
 
-    ax.set_xticklabels([era.capitalize() for era in eras], fontsize=font_size)
+    ax.set_xticklabels(
+        [era.capitalize() for era in eras],
+        fontsize=font_size,
+        rotation=30,
+        ha="right",
+        rotation_mode="anchor"
+    )
 
     plt.yticks(fontsize=font_size)
 
@@ -94,15 +100,17 @@ def main():
     args = parser.parse_args()
 
     model_name_map = {
-        "llm-jp-3-13b": "LLM-JP-3-13B",
-        "sarashina2-13b": "Sarashina2-13B",
-        "Swallow-13b-hf": "Swallow-13B",
-        "Swallow-MS-7b-v0.1": "Swallow-MS-7B",
-        "Llama-3-Swallow-8B-v0.1": "LLaMA3-Swallow-8B",
-        "Llama-2-7b-hf": "LLaMA2-7B",
-        "Llama-2-13b-hf": "LLaMA2-13B",
-        "Mistral-7B-v0.1": "Mistral-7B",
-        "Llama-3.1-8B": "LLaMA3.1-8B"
+        "llm-jp-3-13b":        "llm-jp-3-13b",
+        "sarashina2-13b":      "sarashina2-13b",
+        "Swallow-13b-hf":      "Swallow-13b",
+        "Swallow-MS-7b-v0.1":  "Swallow-MS-7b",
+        "Llama-3-Swallow-8B-v0.1": "Llama-3-Swallow-8B",
+        "Llama-2-7b-hf":       "Llama-2-7b",
+        "Llama-2-13b-hf":      "Llama-2-13b",
+        "Mistral-7B-v0.1":     "Mistral-7B",
+        "Llama-3.1-8B":        "Llama-3.1-8B",
+        "gpt-4o":              "GPT-4o",
+        "deepseek-chat":       "DeepSeek-V3",
     }
 
     eras = ["meiji", "taisho", "showa", "heisei"]
