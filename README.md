@@ -115,11 +115,13 @@ python src/discussion/plot_typical_error_birth_year_recall.py \
 ## Reference
 [1] Liu+ Infini-gram: Scaling Unbounded n-gram Language Models to a Trillion Tokens (2024)
 ```
-@article{Liu2024InfiniGram,
-  title={Infini-gram: Scaling Unbounded n-gram Language Models to a Trillion Tokens},
-  author={Liu, Jiacheng and Min, Sewon and Zettlemoyer, Luke and Choi, Yejin and Hajishirzi, Hannaneh},
-  journal={arXiv preprint arXiv:2401.17377},
-  year={2024}
+@inproceedings{
+Liu2024InfiniGram,
+title={Infini-gram: Scaling Unbounded n-gram Language Models to a Trillion Tokens},
+author={Jiacheng Liu and Sewon Min and Luke Zettlemoyer and Yejin Choi and Hannaneh Hajishirzi},
+booktitle={First Conference on Language Modeling},
+year={2024},
+url={https://openreview.net/forum?id=u2vAyMeLMm}
 }
 ```
 
